@@ -4,6 +4,7 @@ import { createServer } from "./index.ts";
 import { bridgeIdentity, descriptorPath, registerBridge } from "./bridge.ts";
 import { parseProcessLine, refusedSocket, staleMarker } from "./herdr-marker.ts";
 import { psQuote } from "./powershell.ts";
+import { ShellAgentLocator } from "./shell-agent.ts";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -95,7 +96,8 @@ try {
   const info = await bridgeIdentity();
   if (info.herdr.protocol < 22) throw new Error("herdr 0.9+ is required; update it explicitly before connecting");
   const token = randomBytes(32).toString("hex");
-  const server = createServer({ port: 0, hostname: "127.0.0.1", token, machines: false, stateDir: descriptor + ".state" });
+  // started over SSH with a bare PATH: omo and gjc are often only on the login shell's
+  const server = createServer({ port: 0, hostname: "127.0.0.1", token, machines: false, stateDir: descriptor + ".state", shellAgents: new ShellAgentLocator() });
   const registration = registerBridge(server.port, token);
   const close = () => { registration.close(); server.stop(); setTimeout(() => process.exit(0), 2000); };
   process.on("SIGTERM", close);
